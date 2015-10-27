@@ -115,10 +115,10 @@ XML;
         if ('Failure' === (string) $trackResponseXml->Response->ResponseStatusDescription) {
             if (null !== $trackResponseXml->Response->Error) {
                 // No tracking information available
-                throw new \Exception((string) $trackResponseXml->Response->Error->ErrorDescription);
+                throw new Exception((string) $trackResponseXml->Response->Error->ErrorDescription);
             }
 
-            throw new \Exception('Unknown failure');
+            throw new Exception('Unknown failure');
         }
 
         $packageReturned = $trackResponseXml->Shipment->Package->ReturnTo->count() > 0;
