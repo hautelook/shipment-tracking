@@ -82,7 +82,7 @@ XML;
         $trackInfoElements = $trackResponseXml->xpath(sprintf('//TrackInfo[@ID=\'%s\']', $trackingNumber));
 
         if (count($trackInfoElements) < 1) {
-            throw new \Exception('tracking information not found in the response');
+            throw new Exception('Tracking information not found in the response.');
         }
 
         $trackInfoXml = reset($trackInfoElements);
