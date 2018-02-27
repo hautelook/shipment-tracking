@@ -68,7 +68,7 @@ class UpsProvider implements ProviderInterface
 
     private function createAuthenticationXml()
     {
-<<<XML
+        <<<XML
 <AccessRequest>
     <AccessLicenseNumber></AccessLicenseNumber>
     <UserId></UserId>
@@ -86,7 +86,7 @@ XML;
 
     private function createTrackXml($trackingNumber)
     {
-<<<XML
+        <<<XML
 <TrackRequest>
     <Request>
         <RequestAction>Track</RequestAction>
@@ -155,14 +155,14 @@ XML;
             $events[] = new ShipmentEvent($date, $label, $location, $shipmentEventType);
         }
 
-        $scheduledDeliveryDate = null;
-        if ($trackResponseXml->Shipment->ScheduledDeliveryDate->count() > 0) {
-            \DateTime::createFromFormat('Ymd', (string) $trackResponseXml->Shipment->ScheduledDeliveryDate);
+        $estimatedDeliveryDate = null;
+        if (isset($trackResponseXml->Shipment->ScheduledDeliveryDate)) {
+            $estimatedDeliveryDate = new \DateTime((string) $trackResponseXml->Shipment->ScheduledDeliveryDate);
         }
 
         return new ShipmentInformation(
             $events,
-            $scheduledDeliveryDate
+            $estimatedDeliveryDate
         );
     }
 }

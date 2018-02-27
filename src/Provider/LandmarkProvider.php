@@ -63,7 +63,7 @@ class LandmarkProvider implements ProviderInterface
 
     private function createRequestXml($trackingNumber)
     {
-<<<XML
+        <<<XML
 <TrackRequest>
     <Login>
         <Username></Username>
@@ -99,13 +99,19 @@ XML;
 
             $shipmentEventType = null;
 
-            if ('Item successfully delivered' === $status) {
+            if ('Item successfully delivered' === $status ||
+                'Delivered' === $status) {
                 $shipmentEventType = ShipmentEvent::TYPE_DELIVERED;
             }
 
             $events[] = new ShipmentEvent($date, $status, $location, $shipmentEventType);
         }
 
-        return new ShipmentInformation($events);
+        $estimatedDeliveryDate = null;
+        if (isset($trackResponseXml->Result->Packages->Package->ExpectedDelivery)) {
+            $estimatedDeliveryDate = new \DateTime((string) $trackResponseXml->Result->Packages->Package->ExpectedDelivery);
+        }
+
+        return new ShipmentInformation($events, $estimatedDeliveryDate);
     }
 }
