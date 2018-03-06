@@ -77,7 +77,7 @@ class FedexProvider implements ProviderInterface
 
     private function createRequestXML($trackingNumber)
     {
-<<<XML
+        <<<XML
 <TrackRequest xmlns="http://fedex.com/ws/track/v9">
     <WebAuthenticationDetail>
         <UserCredential>
@@ -159,6 +159,11 @@ XML;
             );
         }
 
-        return new ShipmentInformation($events);
+        $estimatedDeliveryDate = null;
+        if (isset($trackReplyXml->TrackReply->TrackDetails->EstimatedDeliveryTimestamp)) {
+            $estimatedDeliveryDate = new \DateTime((string) $trackReplyXml->TrackReply->TrackDetails->EstimatedDeliveryTimestamp);
+        }
+
+        return new ShipmentInformation($events, $estimatedDeliveryDate);
     }
 }

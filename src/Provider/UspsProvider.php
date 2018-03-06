@@ -52,7 +52,7 @@ class UspsProvider implements ProviderInterface
 
     private function createTrackRequestXml($trackingNumber)
     {
-<<<XML
+        <<<XML
 <TrackFieldRequest USERID="">
     <Revision>1</Revision>
     <ClientIp>127.0.0.1</ClientIp>
@@ -114,6 +114,11 @@ XML;
             $events[] = new ShipmentEvent($date, $label, $location, $shipmentEventType);
         }
 
-        return new ShipmentInformation($events);
+        $estimatedDeliveryDate = null;
+        if (isset($trackInfoXml->ExpectedDeliveryDate)) {
+            $estimatedDeliveryDate = new \DateTime((string) $trackInfoXml->ExpectedDeliveryDate);
+        }
+
+        return new ShipmentInformation($events, $estimatedDeliveryDate);
     }
 }

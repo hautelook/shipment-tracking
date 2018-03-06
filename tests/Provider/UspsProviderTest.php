@@ -55,7 +55,7 @@ XML;
             new \DateTime('March 8, 2012 9:58 am'),
             $shipmentInformation->getDeliveredAt()
         );
-        $this->assertSame(null, $shipmentInformation->getEstimatedDeliveryDate());
+        $this->assertEquals(new \DateTime('March 9, 2012'), $shipmentInformation->getEstimatedDeliveryDate());
 
         $events = $shipmentInformation->getEvents();
         $this->assertCount(9, $events);
