@@ -14,6 +14,12 @@ use Hautelook\ShipmentTracking\ShipmentInformation;
  */
 class LandmarkProvider implements ProviderInterface
 {
+    const DELIVERED_STATUSES = array(
+        "Item successfully delivered",
+        "Delivered",
+        "Delivered to your community mailbox, parcel locker or apt./condo mailbox"
+    );
+
     /**
      * @var string
      */
@@ -99,8 +105,7 @@ XML;
 
             $shipmentEventType = null;
 
-            if ('Item successfully delivered' === $status ||
-                'Delivered' === $status) {
+            if (in_array($status, self::DELIVERED_STATUSES)) {
                 $shipmentEventType = ShipmentEvent::TYPE_DELIVERED;
             }
 

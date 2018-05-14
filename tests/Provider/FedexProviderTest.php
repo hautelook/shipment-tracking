@@ -17,39 +17,42 @@ class FedexProviderTest extends \PHPUnit_Framework_TestCase
         $responseProphecy = $this->prophesize(Response::class);
 
         $xml = <<<XML
-<TrackRequest xmlns="http://fedex.com/ws/track/v9">
-    <WebAuthenticationDetail>
-        <UserCredential>
-            <Key>key</Key>
-            <Password>password</Password>
-        </UserCredential>
-    </WebAuthenticationDetail>
-    <ClientDetail>
-        <AccountNumber>accountNumber</AccountNumber>
-        <MeterNumber>meterNumber</MeterNumber>
-    </ClientDetail>
-    <Version>
-        <ServiceId>trck</ServiceId>
-        <Major>9</Major>
-        <Intermediate>1</Intermediate>
-        <Minor>0</Minor>
-    </Version>
-    <SelectionDetails>
-        <PackageIdentifier>
-            <Type>TRACKING_NUMBER_OR_DOORTAG</Type>
-            <Value>ABC</Value>
-        </PackageIdentifier>
-    </SelectionDetails>
-    <ProcessingOptions>INCLUDE_DETAILED_SCANS</ProcessingOptions>
-</TrackRequest>
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:v9="http://fedex.com/ws/track/v9">
+    <soapenv:Body>
+        <TrackRequest xmlns="http://fedex.com/ws/track/v9">
+            <WebAuthenticationDetail>
+                <UserCredential>
+                    <Key>key</Key>
+                    <Password>password</Password>
+                </UserCredential>
+            </WebAuthenticationDetail>
+            <ClientDetail>
+                <AccountNumber>accountNumber</AccountNumber>
+                <MeterNumber>meterNumber</MeterNumber>
+            </ClientDetail>
+            <Version>
+                <ServiceId>trck</ServiceId>
+                <Major>9</Major>
+                <Intermediate>1</Intermediate>
+                <Minor>0</Minor>
+            </Version>
+            <SelectionDetails>
+                <PackageIdentifier>
+                    <Type>TRACKING_NUMBER_OR_DOORTAG</Type>
+                    <Value>ABC</Value>
+                </PackageIdentifier>
+            </SelectionDetails>
+            <ProcessingOptions>INCLUDE_DETAILED_SCANS</ProcessingOptions>
+        </TrackRequest>
+    </soapenv:Body>
+</soapenv:Envelope>
 XML;
         $xml = preg_replace('/\n\s*/', '', $xml);
-        $xml = '<?xml version="1.0"?>' . "\n" . $xml . "\n";
 
         $clientProphecy
             ->post(
-                'https://gateway.fedex.com/xml',
-                [],
+                'https://ws.fedex.com:443/web-services',
+                ['Content-Type' => 'text/xml'],
                 $xml
             )
             ->willReturn($requestProphecy)

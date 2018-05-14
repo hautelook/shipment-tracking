@@ -14,6 +14,9 @@ use Hautelook\ShipmentTracking\ShipmentInformation;
  */
 class FedexProvider implements ProviderInterface
 {
+    const DELIVERED = 'DL';
+    const RETURN_TO_SHIPPER = 'RS';
+
     /**
      * @var string
      */
@@ -56,7 +59,7 @@ class FedexProvider implements ProviderInterface
         $this->password = $password;
         $this->accountNumber = $accountNumber;
         $this->meterNumber = $meterNumber;
-        $this->url = $url ?: 'https://gateway.fedex.com/xml';
+        $this->url = $url ?: 'https://ws.fedex.com:443/web-services';
         $this->httpClient = $httpClient ?: new Client();
     }
 
@@ -65,44 +68,47 @@ class FedexProvider implements ProviderInterface
         try {
             $response = $this->httpClient->post(
                 $this->url,
-                array(),
+                array('Content-Type' => 'text/xml'),
                 $this->createRequestXML($trackingNumber)
             )->send();
         } catch (HttpException $e) {
             throw Exception::createFromHttpException($e);
         }
-
         return $this->parseTrackReply($response->getBody(true));
     }
 
     private function createRequestXML($trackingNumber)
     {
         <<<XML
-<TrackRequest xmlns="http://fedex.com/ws/track/v9">
-    <WebAuthenticationDetail>
-        <UserCredential>
-            <Key></Key>
-            <Password></Password>
-        </UserCredential>
-    </WebAuthenticationDetail>
-    <ClientDetail>
-        <AccountNumber></AccountNumber>
-        <MeterNumber></MeterNumber>
-    </ClientDetail>
-    <Version>
-        <ServiceId></ServiceId>
-        <Major></Major>
-        <Intermediate></Intermediate>
-        <Minor></Minor>
-    </Version>
-    <SelectionDetail>
-        <PackageIdentifier>
-            <Type></Type>
-            <Value></Value>
-        </PackageIdentifier>
-    </SelectionDetail>
-    <ProcessingOptions></ProcessingOptions>
-</TrackRequest>
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:v9="http://fedex.com/ws/track/v9"> 
+    <soapenv:Body>
+        <TrackRequest xmlns="http://fedex.com/ws/track/v9">
+            <WebAuthenticationDetail>
+                <UserCredential>
+                    <Key></Key>
+                    <Password></Password>
+                </UserCredential>
+            </WebAuthenticationDetail>
+            <ClientDetail>
+                <AccountNumber></AccountNumber>
+                <MeterNumber></MeterNumber>
+            </ClientDetail>
+            <Version>
+                <ServiceId></ServiceId>
+                <Major></Major>
+                <Intermediate></Intermediate>
+                <Minor></Minor>
+            </Version>
+            <SelectionDetail>
+                <PackageIdentifier>
+                    <Type></Type>
+                    <Value></Value>
+                </PackageIdentifier>
+            </SelectionDetail>
+            <ProcessingOptions></ProcessingOptions>
+        </TrackRequest>
+    </soapenv:Body>
+</soapenv:Envelope>
 XML;
 
         $requestXml = new \SimpleXMLElement('<TrackRequest xmlns="http://fedex.com/ws/track/v9"/>');
@@ -119,13 +125,29 @@ XML;
         $requestXml->SelectionDetails->PackageIdentifier->Value = $trackingNumber;
         $requestXml->ProcessingOptions = 'INCLUDE_DETAILED_SCANS';
 
-        return $requestXml->asXML();
+        $requestBody = $requestXml->asXML();
+
+        return $this->wrapSoapRequest($requestBody);
+    }
+
+    private function wrapSoapRequest($requestBody) {
+        $envelopeHeader = '<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" '
+            . 'xmlns:v9="http://fedex.com/ws/track/v9"><soapenv:Body>';
+        $envelopeFooter = '</soapenv:Body></soapenv:Envelope>';
+        $requestSoapXml = str_replace(
+            ["<?xml version=\"1.0\"?>\n", "\n"],
+            "",
+            $envelopeHeader . $requestBody . $envelopeFooter
+        );
+
+        return $requestSoapXml;
     }
 
     private function parseTrackReply($xml)
     {
         try {
-            $trackReplyXml = new \SimpleXMLElement($xml);
+            $cleanXML = str_ireplace(['SOAP-ENV:', 'SOAP:'], '', $xml);
+            $trackReplyXml = new \SimpleXMLElement($cleanXML);
         } catch (\Exception $e) {
             throw Exception::createFromSimpleXMLException($e);
         }
@@ -147,8 +169,10 @@ XML;
             $shipmentEventType = null;
 
             $eventXmlType = (string) $eventXml->EventType;
-            if ('DL' === $eventXmlType) {
+            if (self::DELIVERED === $eventXmlType) {
                 $shipmentEventType = ShipmentEvent::TYPE_DELIVERED;
+            } else if (self::RETURN_TO_SHIPPER === $eventXmlType) {
+                $shipmentEventType = ShipmentEvent::TYPE_RETURNED_TO_SHIPPER;
             }
 
             $events[] = new ShipmentEvent(
@@ -159,9 +183,10 @@ XML;
             );
         }
 
+        $estimatedDeliveryElement = $trackReplyXml->xpath('//v9:TrackDetails')[0]->EstimatedDeliveryTimestamp;
         $estimatedDeliveryDate = null;
-        if (isset($trackReplyXml->TrackReply->TrackDetails->EstimatedDeliveryTimestamp)) {
-            $estimatedDeliveryDate = new \DateTime((string) $trackReplyXml->TrackReply->TrackDetails->EstimatedDeliveryTimestamp);
+        if (isset($estimatedDeliveryElement) && !empty($estimatedDeliveryElement)) {
+            $estimatedDeliveryDate = new \DateTime((string) $estimatedDeliveryElement);
         }
 
         return new ShipmentInformation($events, $estimatedDeliveryDate);
