@@ -14,6 +14,9 @@ use Hautelook\ShipmentTracking\ShipmentInformation;
  */
 class OnTracProvider implements ProviderInterface
 {
+
+    const RETURN_TO_SENDER_STATUS = "RS";
+
     /**
      * @var string
      */
@@ -58,6 +61,7 @@ class OnTracProvider implements ProviderInterface
         foreach ($packageXml->xpath('./Events/Event') as $index => $eventXml) {
             $city = (string) $eventXml->City;
             $state = (string) $eventXml->State;
+            $status = (string) $eventXml->Status;
 
             $location = null;
             if (strlen($city) > 0 && strlen($state) > 0) {
@@ -67,6 +71,8 @@ class OnTracProvider implements ProviderInterface
             $shipmentEventType = null;
             if ($delivered && 0 === $index) { // events are ordered in a descending order
                 $shipmentEventType = ShipmentEvent::TYPE_DELIVERED;
+            } else if ($status == self::RETURN_TO_SENDER_STATUS) {
+                $shipmentEventType = ShipmentEvent::TYPE_RETURNED_TO_SHIPPER;
             }
 
             $events[] = new ShipmentEvent(
