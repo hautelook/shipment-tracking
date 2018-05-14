@@ -39,7 +39,7 @@ XML;
 
         $clientProphecy
             ->post(
-                'https://wwwcie.ups.com/ups.app/xml/Track',
+                'https://onlinetools.ups.com/ups.app/xml/Track',
                 [],
                 $authXml . $trackXml
             )

@@ -49,7 +49,7 @@ class UpsProvider implements ProviderInterface
         $this->accessLicenseNumber = $accessLicenseNumber;
         $this->username = $username;
         $this->password = $password;
-        $this->url = $url ?: 'https://wwwcie.ups.com/ups.app/xml/Track';
+        $this->url = $url ?: 'https://onlinetools.ups.com/ups.app/xml/Track';
         $this->httpClient = $httpClient ?: new Client();
     }
 
