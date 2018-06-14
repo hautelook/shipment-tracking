@@ -107,7 +107,7 @@ XML;
     private function parse($xml)
     {
         try {
-            $trackResponseXml = new \SimpleXMLElement($xml);
+            $trackResponseXml = new \SimpleXMLElement(utf8_encode($xml));
         } catch (\Exception $e) {
             throw Exception::createFromSimpleXMLException($e);
         }
