@@ -4,7 +4,6 @@ namespace Hautelook\ShipmentTracking\Provider;
 
 use Guzzle\Http\Client;
 use Guzzle\Http\ClientInterface;
-use Guzzle\Http\Exception\HttpException;
 use Hautelook\ShipmentTracking\Exception\Exception;
 use Hautelook\ShipmentTracking\ShipmentEvent;
 use Hautelook\ShipmentTracking\ShipmentInformation;
@@ -58,8 +57,16 @@ class UpsProvider implements ProviderInterface
         $body = $this->createAuthenticationXml() . $this->createTrackXml($trackingNumber);
 
         try {
-            $response = $this->httpClient->post($this->url, array(), $body)->send();
-        } catch (HttpException $e) {
+            $response = $this->httpClient->post(
+                $this->url, 
+                array(), 
+                $body,
+                array(
+                    'connect_timeout' => self::CONNECT_TIMEOUT,
+                    'timeout' => self::TIMEOUT
+                )
+            )->send();
+        } catch (\Exception $e) {
             throw Exception::createFromHttpException($e);
         }
 

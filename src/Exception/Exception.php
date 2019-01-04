@@ -2,11 +2,9 @@
 
 namespace Hautelook\ShipmentTracking\Exception;
 
-use Guzzle\Http\Exception\HttpException;
-
 class Exception extends \Exception
 {
-    public static function createFromHttpException(HttpException $exception)
+    public static function createFromHttpException(\Exception $exception)
     {
         return new static('An error occurred contacting the carrier\'s api.', 0, $exception);
     }

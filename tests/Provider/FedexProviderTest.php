@@ -7,6 +7,7 @@ use Guzzle\Http\Message\RequestInterface;
 use Guzzle\Http\Message\Response;
 use Hautelook\ShipmentTracking\Provider\FedexProvider;
 use Hautelook\ShipmentTracking\ShipmentInformation;
+use Hautelook\ShipmentTracking\Provider\ProviderInterface;
 
 class FedexProviderTest extends \PHPUnit_Framework_TestCase
 {
@@ -53,7 +54,11 @@ XML;
             ->post(
                 'https://ws.fedex.com:443/web-services',
                 ['Content-Type' => 'text/xml'],
-                $xml
+                $xml,
+                array(
+                    'connect_timeout' => ProviderInterface::CONNECT_TIMEOUT,
+                    'timeout' => ProviderInterface::TIMEOUT
+                )
             )
             ->willReturn($requestProphecy)
         ;

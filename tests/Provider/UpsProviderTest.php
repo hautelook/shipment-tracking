@@ -7,6 +7,7 @@ use Guzzle\Http\Message\RequestInterface;
 use Guzzle\Http\Message\Response;
 use Hautelook\ShipmentTracking\Provider\UpsProvider;
 use Hautelook\ShipmentTracking\ShipmentInformation;
+use Hautelook\ShipmentTracking\Provider\ProviderInterface;
 
 class UpsProviderTest extends \PHPUnit_Framework_TestCase
 {
@@ -41,7 +42,11 @@ XML;
             ->post(
                 'https://onlinetools.ups.com/ups.app/xml/Track',
                 [],
-                $authXml . $trackXml
+                $authXml . $trackXml,
+                array(
+                    'connect_timeout' => ProviderInterface::CONNECT_TIMEOUT,
+                    'timeout' => ProviderInterface::TIMEOUT
+                )
             )
             ->willReturn($requestProphecy)
         ;

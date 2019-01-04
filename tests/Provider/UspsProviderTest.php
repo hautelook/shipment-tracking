@@ -8,6 +8,7 @@ use Guzzle\Http\Message\Response;
 use Hautelook\ShipmentTracking\Provider\UspsProvider;
 use Hautelook\ShipmentTracking\ShipmentEvent;
 use Hautelook\ShipmentTracking\ShipmentInformation;
+use Hautelook\ShipmentTracking\Provider\ProviderInterface;
 
 class UspsProviderTest extends \PHPUnit_Framework_TestCase
 {
@@ -35,7 +36,11 @@ XML;
                 [
                     'API' => 'TrackV2',
                     'XML' => $xml,
-                ]
+                ],
+                array(
+                    'connect_timeout' => ProviderInterface::CONNECT_TIMEOUT,
+                    'timeout' => ProviderInterface::TIMEOUT
+                )
             )
             ->willReturn($requestProphecy)
         ;

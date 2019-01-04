@@ -7,6 +7,7 @@ use Guzzle\Http\Message\RequestInterface;
 use Guzzle\Http\Message\Response;
 use Hautelook\ShipmentTracking\Provider\LandmarkProvider;
 use Hautelook\ShipmentTracking\ShipmentInformation;
+use Hautelook\ShipmentTracking\Provider\ProviderInterface;
 
 class LandmarkProviderTest extends \PHPUnit_Framework_TestCase
 {
@@ -34,6 +35,8 @@ XML;
                 [],
                 [
                     'query' => ['RQXML' => $xml],
+                    'connect_timeout' => ProviderInterface::CONNECT_TIMEOUT,
+                    'timeout' => ProviderInterface::TIMEOUT
                 ]
             )
             ->willReturn($requestProphecy)

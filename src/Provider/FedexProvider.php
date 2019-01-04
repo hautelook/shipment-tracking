@@ -4,7 +4,6 @@ namespace Hautelook\ShipmentTracking\Provider;
 
 use Guzzle\Http\Client;
 use Guzzle\Http\ClientInterface;
-use Guzzle\Http\Exception\HttpException;
 use Hautelook\ShipmentTracking\Exception\Exception;
 use Hautelook\ShipmentTracking\ShipmentEvent;
 use Hautelook\ShipmentTracking\ShipmentInformation;
@@ -69,9 +68,13 @@ class FedexProvider implements ProviderInterface
             $response = $this->httpClient->post(
                 $this->url,
                 array('Content-Type' => 'text/xml'),
-                $this->createRequestXML($trackingNumber)
+                $this->createRequestXML($trackingNumber),
+                array(
+                    'connect_timeout' => self::CONNECT_TIMEOUT,
+                    'timeout' => self::TIMEOUT
+                )
             )->send();
-        } catch (HttpException $e) {
+        } catch (\Exception $e) {
             throw Exception::createFromHttpException($e);
         }
         return $this->parseTrackReply($response->getBody(true));

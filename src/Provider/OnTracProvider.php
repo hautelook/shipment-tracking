@@ -36,10 +36,16 @@ class OnTracProvider implements ProviderInterface
     public function track($trackingNumber)
     {
         try {
-            $response = $this->httpClient->get($this->url, array(), array(
-                'query' => array('tn' => $trackingNumber),
-            ))->send();
-        } catch (HttpException $e) {
+            $response = $this->httpClient->get(
+                $this->url, 
+                array(), 
+                array(
+                    'query' => array('tn' => $trackingNumber),
+                    'connect_timeout' => self::CONNECT_TIMEOUT,
+                    'timeout' => self::TIMEOUT
+                )
+            )->send();
+        } catch (\Exception $e) {
             throw Exception::createFromHttpException($e);
         }
 

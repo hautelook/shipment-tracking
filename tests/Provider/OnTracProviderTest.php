@@ -7,6 +7,7 @@ use Guzzle\Http\Message\RequestInterface;
 use Guzzle\Http\Message\Response;
 use Hautelook\ShipmentTracking\Provider\OnTracProvider;
 use Hautelook\ShipmentTracking\ShipmentInformation;
+use Hautelook\ShipmentTracking\Provider\ProviderInterface;
 
 class OnTracProviderTest extends \PHPUnit_Framework_TestCase
 {
@@ -22,6 +23,8 @@ class OnTracProviderTest extends \PHPUnit_Framework_TestCase
                 [],
                 [
                     'query' => ['tn' => 'ABC'],
+                    'connect_timeout' => ProviderInterface::CONNECT_TIMEOUT,
+                    'timeout' => ProviderInterface::TIMEOUT
                 ]
             )
             ->willReturn($requestProphecy)
