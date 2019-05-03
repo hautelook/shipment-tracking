@@ -48,7 +48,7 @@ class LandmarkProvider implements ProviderInterface
     ) {
         $this->username = $username;
         $this->password = $password;
-        $this->url = $url ?: 'https://mercury.landmarkglobal.com/api/api.php';
+        $this->url = $url ?: 'https://api.landmarkglobal.com/v2/Track.php';
         $this->httpClient = $httpClient ?: new Client();
     }
 
