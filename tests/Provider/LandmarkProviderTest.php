@@ -30,7 +30,7 @@ XML;
 
         $clientProphecy
             ->get(
-                'https://mercury.landmarkglobal.com/api/api.php',
+                'https://api.landmarkglobal.com/v2/Track.php',
                 [],
                 [
                     'query' => ['RQXML' => $xml],
