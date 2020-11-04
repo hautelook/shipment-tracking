@@ -52,6 +52,9 @@ class LandmarkProvider implements ProviderInterface
         $this->httpClient = $httpClient ?: new Client();
     }
 
+    /**
+     * {@inheritdoc}
+     */
     public function track($trackingNumber)
     {
         try {

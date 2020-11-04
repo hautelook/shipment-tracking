@@ -2,6 +2,8 @@
 
 namespace Hautelook\ShipmentTracking\Provider;
 
+use Exception;
+
 use Hautelook\ShipmentTracking\ShipmentInformation;
 
 /**
@@ -11,6 +13,9 @@ interface ProviderInterface
 {
     /**
      * @param  string              $trackingNumber
+     *
+     * @throws Exception
+     *
      * @return ShipmentInformation
      */
     public function track($trackingNumber);

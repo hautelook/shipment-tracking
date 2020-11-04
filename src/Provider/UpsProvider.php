@@ -53,6 +53,9 @@ class UpsProvider implements ProviderInterface
         $this->httpClient = $httpClient ?: new Client();
     }
 
+    /**
+     * {@inheritdoc}
+     */
     public function track($trackingNumber)
     {
         $body = $this->createAuthenticationXml() . $this->createTrackXml($trackingNumber);
