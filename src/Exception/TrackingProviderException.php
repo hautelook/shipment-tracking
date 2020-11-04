@@ -4,7 +4,7 @@ namespace Hautelook\ShipmentTracking\Exception;
 
 use Guzzle\Http\Exception\HttpException;
 
-class Exception extends \Exception
+class TrackingProviderException extends \Exception
 {
     public static function createFromHttpException(HttpException $exception)
     {

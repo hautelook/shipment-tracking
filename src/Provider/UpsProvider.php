@@ -5,7 +5,7 @@ namespace Hautelook\ShipmentTracking\Provider;
 use Guzzle\Http\Client;
 use Guzzle\Http\ClientInterface;
 use Guzzle\Http\Exception\HttpException;
-use Hautelook\ShipmentTracking\Exception\Exception;
+use Hautelook\ShipmentTracking\Exception\TrackingProviderException;
 use Hautelook\ShipmentTracking\ShipmentEvent;
 use Hautelook\ShipmentTracking\ShipmentInformation;
 
@@ -53,6 +53,9 @@ class UpsProvider implements ProviderInterface
         $this->httpClient = $httpClient ?: new Client();
     }
 
+    /**
+     * {@inheritdoc}
+     */
     public function track($trackingNumber)
     {
         $body = $this->createAuthenticationXml() . $this->createTrackXml($trackingNumber);
@@ -60,7 +63,7 @@ class UpsProvider implements ProviderInterface
         try {
             $response = $this->httpClient->post($this->url, array(), $body)->send();
         } catch (HttpException $e) {
-            throw Exception::createFromHttpException($e);
+            throw TrackingProviderException::createFromHttpException($e);
         }
 
         return $this->parse($response->getBody(true));
@@ -109,7 +112,7 @@ XML;
         try {
             $trackResponseXml = new \SimpleXMLElement(utf8_encode($xml));
         } catch (\Exception $e) {
-            throw Exception::createFromSimpleXMLException($e);
+            throw TrackingProviderException::createFromSimpleXMLException($e);
         }
 
         if ('Failure' === (string) $trackResponseXml->Response->ResponseStatusDescription) {

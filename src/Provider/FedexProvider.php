@@ -5,7 +5,7 @@ namespace Hautelook\ShipmentTracking\Provider;
 use Guzzle\Http\Client;
 use Guzzle\Http\ClientInterface;
 use Guzzle\Http\Exception\HttpException;
-use Hautelook\ShipmentTracking\Exception\Exception;
+use Hautelook\ShipmentTracking\Exception\TrackingProviderException;
 use Hautelook\ShipmentTracking\ShipmentEvent;
 use Hautelook\ShipmentTracking\ShipmentInformation;
 
@@ -63,6 +63,9 @@ class FedexProvider implements ProviderInterface
         $this->httpClient = $httpClient ?: new Client();
     }
 
+    /**
+     * {@inheritdoc}
+     */
     public function track($trackingNumber)
     {
         try {
@@ -72,7 +75,7 @@ class FedexProvider implements ProviderInterface
                 $this->createRequestXML($trackingNumber)
             )->send();
         } catch (HttpException $e) {
-            throw Exception::createFromHttpException($e);
+            throw TrackingProviderException::createFromHttpException($e);
         }
         return $this->parseTrackReply($response->getBody(true));
     }
@@ -149,7 +152,7 @@ XML;
             $cleanXML = str_ireplace(['SOAP-ENV:', 'SOAP:'], '', $xml);
             $trackReplyXml = new \SimpleXMLElement($cleanXML);
         } catch (\Exception $e) {
-            throw Exception::createFromSimpleXMLException($e);
+            throw TrackingProviderException::createFromSimpleXMLException($e);
         }
 
         $trackReplyXml->registerXPathNamespace('v9', 'http://fedex.com/ws/track/v9');
