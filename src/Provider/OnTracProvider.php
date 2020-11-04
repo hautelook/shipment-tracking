@@ -5,7 +5,7 @@ namespace Hautelook\ShipmentTracking\Provider;
 use Guzzle\Http\Client;
 use Guzzle\Http\ClientInterface;
 use Guzzle\Http\Exception\HttpException;
-use Hautelook\ShipmentTracking\Exception\Exception;
+use Hautelook\ShipmentTracking\Exception\TrackingProviderException;
 use Hautelook\ShipmentTracking\ShipmentEvent;
 use Hautelook\ShipmentTracking\ShipmentInformation;
 
@@ -43,7 +43,7 @@ class OnTracProvider implements ProviderInterface
                 'query' => array('tn' => $trackingNumber),
             ))->send();
         } catch (HttpException $e) {
-            throw Exception::createFromHttpException($e);
+            throw TrackingProviderException::createFromHttpException($e);
         }
 
         return $this->parseResponse($response->getBody(true));
@@ -54,7 +54,7 @@ class OnTracProvider implements ProviderInterface
         try {
             $shipmentStatusXml = new \SimpleXMLElement($xml);
         } catch (\Exception $e) {
-            throw Exception::createFromSimpleXMLException($e);
+            throw TrackingProviderException::createFromSimpleXMLException($e);
         }
 
         $packageXml = $shipmentStatusXml->xpath('//Package')[0];

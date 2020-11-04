@@ -5,7 +5,7 @@ namespace Hautelook\ShipmentTracking\Provider;
 use Guzzle\Http\Client;
 use Guzzle\Http\ClientInterface;
 use Guzzle\Http\Exception\HttpException;
-use Hautelook\ShipmentTracking\Exception\Exception;
+use Hautelook\ShipmentTracking\Exception\TrackingProviderException;
 use Hautelook\ShipmentTracking\ShipmentEvent;
 use Hautelook\ShipmentTracking\ShipmentInformation;
 
@@ -64,7 +64,7 @@ class LandmarkProvider implements ProviderInterface
                 ),
             ))->send();
         } catch (HttpException $e) {
-            throw Exception::createFromHttpException($e);
+            throw TrackingProviderException::createFromHttpException($e);
         }
 
         return $this->parse($response->getBody(true));
@@ -94,7 +94,7 @@ XML;
         try {
             $trackResponseXml = new \SimpleXMLElement($xml);
         } catch (\Exception $e) {
-            throw Exception::createFromSimpleXMLException($e);
+            throw TrackingProviderException::createFromSimpleXMLException($e);
         }
 
         $events = array();
