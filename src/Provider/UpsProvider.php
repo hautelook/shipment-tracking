@@ -5,9 +5,12 @@ namespace Hautelook\ShipmentTracking\Provider;
 use Guzzle\Http\Client;
 use Guzzle\Http\ClientInterface;
 use Guzzle\Http\Exception\HttpException;
+
 use Hautelook\ShipmentTracking\Exception\TrackingProviderException;
 use Hautelook\ShipmentTracking\ShipmentEvent;
 use Hautelook\ShipmentTracking\ShipmentInformation;
+
+use RuntimeException;
 
 /**
  * @author Adrien Brault <adrien.brault@gmail.com>
@@ -64,6 +67,8 @@ class UpsProvider implements ProviderInterface
             $response = $this->httpClient->post($this->url, array(), $body)->send();
         } catch (HttpException $e) {
             throw TrackingProviderException::createFromHttpException($e);
+        } catch (RuntimeException $re) {
+            throw new TrackingProviderException($re->getMessage(), 0);
         }
 
         return $this->parse($response->getBody(true));
@@ -107,6 +112,13 @@ XML;
         return $trackXml->asXML();
     }
 
+    /**
+     * @param string $xml
+     *
+     * @throws RuntimeException|TrackingProviderException
+     *
+     * @return ShipmentInformation
+     */
     private function parse($xml)
     {
         try {
@@ -118,10 +130,10 @@ XML;
         if ('Failure' === (string) $trackResponseXml->Response->ResponseStatusDescription) {
             if (null !== $trackResponseXml->Response->Error) {
                 // No tracking information available
-                throw new Exception((string) $trackResponseXml->Response->Error->ErrorDescription);
+                throw new RuntimeException((string) $trackResponseXml->Response->Error->ErrorDescription);
             }
 
-            throw new Exception('Unknown failure');
+            throw new RuntimeException('Unknown failure from XML response');
         }
 
         $packageReturned = $trackResponseXml->Shipment->Package->ReturnTo->count() > 0;
