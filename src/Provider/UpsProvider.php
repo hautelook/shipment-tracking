@@ -65,13 +65,13 @@ class UpsProvider implements ProviderInterface
 
         try {
             $response = $this->httpClient->post($this->url, array(), $body)->send();
+
+            return $this->parse($response->getBody(true));
         } catch (HttpException $e) {
             throw TrackingProviderException::createFromHttpException($e);
         } catch (RuntimeException $re) {
             throw new TrackingProviderException($re->getMessage(), 0);
         }
-
-        return $this->parse($response->getBody(true));
     }
 
     private function createAuthenticationXml()
