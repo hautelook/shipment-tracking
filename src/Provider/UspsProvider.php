@@ -6,16 +6,14 @@ use DateTime;
 use Exception;
 use Guzzle\Http\Client;
 use Guzzle\Http\ClientInterface;
-use Guzzle\Http\Exception\HttpException;
+
 use Hautelook\ShipmentTracking\Exception\TrackingProviderException;
 use Hautelook\ShipmentTracking\ShipmentEvent;
 use Hautelook\ShipmentTracking\ShipmentInformation;
+
 use RuntimeException;
 use SimpleXMLElement;
 
-/**
- * @author Adrien Brault <adrien.brault@gmail.com>
- */
 class UspsProvider implements ProviderInterface
 {
     /**
@@ -46,21 +44,30 @@ class UspsProvider implements ProviderInterface
     public function track($trackingNumber)
     {
         try {
-            $response = $this->httpClient->post($this->url, array(), array(
-                'API' => 'TrackV2',
-                'XML' => $this->createTrackRequestXml($trackingNumber),
-            ))->send();
+            $response = $this->httpClient->post(
+                $this->url,
+                array(),
+                array(
+                    'API' => 'TrackV2',
+                    'XML' => $this->createTrackRequestXml($trackingNumber)
+                ),
+                array(
+                    'connect_timeout' => self::CONNECT_TIMEOUT,
+                    'timeout' => self::TIMEOUT
+                )
+            )->send();
 
             return $this->parseTrackResponse($response->getBody(true), $trackingNumber);
-        } catch (HttpException $e) {
-            throw TrackingProviderException::createFromHttpException($e);
+        } catch (TrackingProviderException $tpe) {
+            throw $tpe;
         } catch (Exception $e) {
-            throw new TrackingProviderException($e->getMessage(), $e->getCode(), $e);
+            throw TrackingProviderException::createFromException($e);
         }
     }
 
     private function createTrackRequestXml($trackingNumber)
     {
+        // XML Structure provided for reference.
         <<<XML
 <TrackFieldRequest USERID="">
     <Revision>1</Revision>

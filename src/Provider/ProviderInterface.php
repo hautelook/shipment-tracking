@@ -5,13 +5,13 @@ namespace Hautelook\ShipmentTracking\Provider;
 use Hautelook\ShipmentTracking\Exception\TrackingProviderException;
 use Hautelook\ShipmentTracking\ShipmentInformation;
 
-/**
- * @author Adrien Brault <adrien.brault@gmail.com>
- */
 interface ProviderInterface
 {
+    const CONNECT_TIMEOUT = 3.0;
+    const TIMEOUT = 5.0;
+
     /**
-     * @param  string              $trackingNumber
+     * @param string $trackingNumber
      *
      * @throws TrackingProviderException
      *

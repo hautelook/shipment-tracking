@@ -2,10 +2,13 @@
 
 namespace Hautelook\ShipmentTracking\Tests\Provider;
 
+use DateTime;
 use Guzzle\Http\ClientInterface;
 use Guzzle\Http\Message\RequestInterface;
 use Guzzle\Http\Message\Response;
+
 use Hautelook\ShipmentTracking\Provider\FedexProvider;
+use Hautelook\ShipmentTracking\Provider\ProviderInterface;
 use Hautelook\ShipmentTracking\ShipmentInformation;
 
 class FedexProviderTest extends \PHPUnit_Framework_TestCase
@@ -53,7 +56,11 @@ XML;
             ->post(
                 'https://ws.fedex.com:443/web-services',
                 ['Content-Type' => 'text/xml'],
-                $xml
+                $xml,
+                array(
+                    'connect_timeout' => ProviderInterface::CONNECT_TIMEOUT,
+                    'timeout' => ProviderInterface::TIMEOUT
+                )
             )
             ->willReturn($requestProphecy)
         ;
@@ -72,13 +79,13 @@ XML;
         $shipmentInformation = $provider->track('ABC');
 
         $this->assertInstanceOf(ShipmentInformation::class, $shipmentInformation);
-        $this->assertEquals(new \DateTime('2015-04-17T15:08:53-07:00'), $shipmentInformation->getDeliveredAt());
+        $this->assertEquals(new DateTime('2015-04-17T15:08:53-07:00'), $shipmentInformation->getDeliveredAt());
         $this->assertSame(null, $shipmentInformation->getEstimatedDeliveryDate());
 
         $events = $shipmentInformation->getEvents();
         $this->assertCount(9, $events);
         $event = $events[0];
-        $this->assertEquals(new \DateTime('2015-04-17T15:08:53-07:00'), $event->getDate());
+        $this->assertEquals(new DateTime('2015-04-17T15:08:53-07:00'), $event->getDate());
         $this->assertEquals('Delivered', $event->getLabel());
         $this->assertEquals('Richland, WA', $event->getLocation());
     }

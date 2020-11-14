@@ -2,16 +2,17 @@
 
 namespace Hautelook\ShipmentTracking\Provider;
 
+use DateTime;
+use Exception;
 use Guzzle\Http\Client;
 use Guzzle\Http\ClientInterface;
-use Guzzle\Http\Exception\HttpException;
+
 use Hautelook\ShipmentTracking\Exception\TrackingProviderException;
 use Hautelook\ShipmentTracking\ShipmentEvent;
 use Hautelook\ShipmentTracking\ShipmentInformation;
 
-/**
- * @author Adrien Brault <adrien.brault@gmail.com>
- */
+use SimpleXMLElement;
+
 class FedexProvider implements ProviderInterface
 {
     const DELIVERED = 'DL';
@@ -72,16 +73,29 @@ class FedexProvider implements ProviderInterface
             $response = $this->httpClient->post(
                 $this->url,
                 array('Content-Type' => 'text/xml'),
-                $this->createRequestXML($trackingNumber)
+                $this->createRequestXML($trackingNumber),
+                array(
+                    'connect_timeout' => self::CONNECT_TIMEOUT,
+                    'timeout' => self::TIMEOUT
+                )
             )->send();
-        } catch (HttpException $e) {
-            throw TrackingProviderException::createFromHttpException($e);
+
+            return $this->parseTrackReply($response->getBody(true));
+        } catch (TrackingProviderException $tpe) {
+            throw $tpe;
+        } catch (Exception $e) {
+            throw TrackingProviderException::createFromException($e);
         }
-        return $this->parseTrackReply($response->getBody(true));
     }
 
+    /**
+     * @param string $trackingNumber
+     *
+     * @return string|string[]
+     */
     private function createRequestXML($trackingNumber)
     {
+        // XML Structure provided for reference.
         <<<XML
 <soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:v9="http://fedex.com/ws/track/v9"> 
     <soapenv:Body>
@@ -114,7 +128,7 @@ class FedexProvider implements ProviderInterface
 </soapenv:Envelope>
 XML;
 
-        $requestXml = new \SimpleXMLElement('<TrackRequest xmlns="http://fedex.com/ws/track/v9"/>');
+        $requestXml = new SimpleXMLElement('<TrackRequest xmlns="http://fedex.com/ws/track/v9"/>');
 
         $requestXml->WebAuthenticationDetail->UserCredential->Key = $this->key;
         $requestXml->WebAuthenticationDetail->UserCredential->Password = $this->password;
@@ -133,6 +147,11 @@ XML;
         return $this->wrapSoapRequest($requestBody);
     }
 
+    /**
+     * @param string $requestBody
+     *
+     * @return string|string[]
+     */
     private function wrapSoapRequest($requestBody) {
         $envelopeHeader = '<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" '
             . 'xmlns:v9="http://fedex.com/ws/track/v9"><soapenv:Body>';
@@ -146,12 +165,19 @@ XML;
         return $requestSoapXml;
     }
 
+    /**
+     * @param string $xml
+     *
+     * @throws Exception|TrackingProviderException
+     *
+     * @return ShipmentInformation
+     */
     private function parseTrackReply($xml)
     {
         try {
             $cleanXML = str_ireplace(['SOAP-ENV:', 'SOAP:'], '', $xml);
-            $trackReplyXml = new \SimpleXMLElement($cleanXML);
-        } catch (\Exception $e) {
+            $trackReplyXml = new SimpleXMLElement($cleanXML);
+        } catch (Exception $e) {
             throw TrackingProviderException::createFromSimpleXMLException($e);
         }
 
@@ -167,7 +193,7 @@ XML;
                 $location = sprintf('%s, %s', $city, $state);
             }
 
-            $date = new \DateTime((string) $eventXml->Timestamp);
+            $date = new DateTime((string) $eventXml->Timestamp);
 
             $shipmentEventType = null;
 
@@ -189,7 +215,7 @@ XML;
         $estimatedDeliveryElement = $trackReplyXml->xpath('//v9:TrackDetails')[0]->EstimatedDeliveryTimestamp;
         $estimatedDeliveryDate = null;
         if (isset($estimatedDeliveryElement) && !empty($estimatedDeliveryElement)) {
-            $estimatedDeliveryDate = new \DateTime((string) $estimatedDeliveryElement);
+            $estimatedDeliveryDate = new DateTime((string) $estimatedDeliveryElement);
         }
 
         return new ShipmentInformation($events, $estimatedDeliveryDate);

@@ -2,19 +2,19 @@
 
 namespace Hautelook\ShipmentTracking\Provider;
 
+use DateTime;
+use Exception;
 use Guzzle\Http\Client;
 use Guzzle\Http\ClientInterface;
-use Guzzle\Http\Exception\HttpException;
+
 use Hautelook\ShipmentTracking\Exception\TrackingProviderException;
 use Hautelook\ShipmentTracking\ShipmentEvent;
 use Hautelook\ShipmentTracking\ShipmentInformation;
 
-/**
- * @author Adrien Brault <adrien.brault@gmail.com>
- */
+use SimpleXMLElement;
+
 class OnTracProvider implements ProviderInterface
 {
-
     const RETURN_TO_SENDER_STATUS = "RS";
 
     /**
@@ -39,21 +39,36 @@ class OnTracProvider implements ProviderInterface
     public function track($trackingNumber)
     {
         try {
-            $response = $this->httpClient->get($this->url, array(), array(
-                'query' => array('tn' => $trackingNumber),
-            ))->send();
-        } catch (HttpException $e) {
-            throw TrackingProviderException::createFromHttpException($e);
-        }
+            $response = $this->httpClient->get(
+                $this->url,
+                array(),
+                array(
+                    'query' => array('tn' => $trackingNumber),
+                    'connect_timeout' => self::CONNECT_TIMEOUT,
+                    'timeout' => self::TIMEOUT
+                )
+            )->send();
 
-        return $this->parseResponse($response->getBody(true));
+            return $this->parseResponse($response->getBody(true));
+        } catch (TrackingProviderException $tpe) {
+            throw $tpe;
+        } catch (Exception $e) {
+            throw TrackingProviderException::createFromException($e);
+        }
     }
 
+    /**
+     * @param string $xml
+     *
+     * @throws Exception|TrackingProviderException
+     *
+     * @return ShipmentInformation
+     */
     private function parseResponse($xml)
     {
         try {
-            $shipmentStatusXml = new \SimpleXMLElement($xml);
-        } catch (\Exception $e) {
+            $shipmentStatusXml = new SimpleXMLElement($xml);
+        } catch (Exception $e) {
             throw TrackingProviderException::createFromSimpleXMLException($e);
         }
 
@@ -79,7 +94,7 @@ class OnTracProvider implements ProviderInterface
             }
 
             $events[] = new ShipmentEvent(
-                new \DateTime((string) $eventXml->EventTime),
+                new DateTime((string) $eventXml->EventTime),
                 (string) $eventXml->Description,
                 $location,
                 $shipmentEventType
@@ -88,7 +103,7 @@ class OnTracProvider implements ProviderInterface
 
         return new ShipmentInformation(
             $events,
-            new \DateTime((string) $packageXml->Exp_Del_Date)
+            new DateTime((string) $packageXml->Exp_Del_Date)
         );
     }
 }

@@ -2,9 +2,12 @@
 
 namespace Hautelook\ShipmentTracking\Tests\Provider;
 
+use DateTime;
 use Guzzle\Http\ClientInterface;
 use Guzzle\Http\Message\RequestInterface;
 use Guzzle\Http\Message\Response;
+
+use Hautelook\ShipmentTracking\Provider\ProviderInterface;
 use Hautelook\ShipmentTracking\Provider\UspsProvider;
 use Hautelook\ShipmentTracking\ShipmentEvent;
 use Hautelook\ShipmentTracking\ShipmentInformation;
@@ -35,7 +38,12 @@ XML;
                 [
                     'API' => 'TrackV2',
                     'XML' => $xml,
-                ]
+                ],
+                array(
+                    'connect_timeout' => ProviderInterface::CONNECT_TIMEOUT,
+                    'timeout' => ProviderInterface::TIMEOUT
+                )
+
             )
             ->willReturn($requestProphecy)
         ;
@@ -52,15 +60,15 @@ XML;
 
         $this->assertInstanceOf(ShipmentInformation::class, $shipmentInformation);
         $this->assertEquals(
-            new \DateTime('March 8, 2012 9:58 am'),
+            new DateTime('March 8, 2012 9:58 am'),
             $shipmentInformation->getDeliveredAt()
         );
-        $this->assertEquals(new \DateTime('March 9, 2012'), $shipmentInformation->getEstimatedDeliveryDate());
+        $this->assertEquals(new DateTime('March 9, 2012'), $shipmentInformation->getEstimatedDeliveryDate());
 
         $events = $shipmentInformation->getEvents();
         $this->assertCount(9, $events);
         $event = $events[0];
-        $this->assertEquals(new \DateTime('March 8, 2012 9:58 am'), $event->getDate());
+        $this->assertEquals(new DateTime('March 8, 2012 9:58 am'), $event->getDate());
         $this->assertEquals('Delivered', $event->getLabel());
         $this->assertEquals(ShipmentEvent::TYPE_DELIVERED, $event->getType());
         $this->assertEquals('BEVERLY HILLS, CA', $event->getLocation());

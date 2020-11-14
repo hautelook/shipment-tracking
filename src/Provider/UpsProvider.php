@@ -2,19 +2,18 @@
 
 namespace Hautelook\ShipmentTracking\Provider;
 
+use DateTime;
+use Exception;
 use Guzzle\Http\Client;
 use Guzzle\Http\ClientInterface;
-use Guzzle\Http\Exception\HttpException;
 
 use Hautelook\ShipmentTracking\Exception\TrackingProviderException;
 use Hautelook\ShipmentTracking\ShipmentEvent;
 use Hautelook\ShipmentTracking\ShipmentInformation;
 
 use RuntimeException;
+use SimpleXMLElement;
 
-/**
- * @author Adrien Brault <adrien.brault@gmail.com>
- */
 class UpsProvider implements ProviderInterface
 {
     /**
@@ -64,18 +63,30 @@ class UpsProvider implements ProviderInterface
         $body = $this->createAuthenticationXml() . $this->createTrackXml($trackingNumber);
 
         try {
-            $response = $this->httpClient->post($this->url, array(), $body)->send();
+            $response = $this->httpClient->post(
+                $this->url,
+                array(),
+                $body,
+                array(
+                    'connect_timeout' => self::CONNECT_TIMEOUT,
+                    'timeout' => self::TIMEOUT
+                )
+            )->send();
 
             return $this->parse($response->getBody(true));
-        } catch (HttpException $e) {
-            throw TrackingProviderException::createFromHttpException($e);
-        } catch (RuntimeException $re) {
-            throw new TrackingProviderException($re->getMessage(), 0);
+        } catch (TrackingProviderException $tpe) {
+            throw $tpe;
+        } catch (Exception $e) {
+            throw TrackingProviderException::createFromException($e);
         }
     }
 
+    /**
+     * @return mixed
+     */
     private function createAuthenticationXml()
     {
+        // XML Structure provided for reference.
         <<<XML
 <AccessRequest>
     <AccessLicenseNumber></AccessLicenseNumber>
@@ -84,7 +95,7 @@ class UpsProvider implements ProviderInterface
 </AccessRequest>
 XML;
 
-        $authenticationXml = new \SimpleXMLElement('<AccessRequest/>');
+        $authenticationXml = new SimpleXMLElement('<AccessRequest/>');
         $authenticationXml->AccessLicenseNumber = $this->accessLicenseNumber;
         $authenticationXml->UserId = $this->username;
         $authenticationXml->Password = $this->password;
@@ -92,8 +103,14 @@ XML;
         return $authenticationXml->asXML();
     }
 
+    /**
+     * @param string $trackingNumber
+     *
+     * @return mixed
+     */
     private function createTrackXml($trackingNumber)
     {
+        // XML Structure provided for reference.
         <<<XML
 <TrackRequest>
     <Request>
@@ -104,7 +121,7 @@ XML;
 </TrackRequest>
 XML;
 
-        $trackXml = new \SimpleXMLElement('<TrackRequest/>');
+        $trackXml = new SimpleXMLElement('<TrackRequest/>');
         $trackXml->Request->RequestAction = 'Track';
         $trackXml->Request->RequestOption = '1';
         $trackXml->TrackingNumber = $trackingNumber;
@@ -115,15 +132,15 @@ XML;
     /**
      * @param string $xml
      *
-     * @throws RuntimeException|TrackingProviderException
+     * @throws Exception|RuntimeException|TrackingProviderException
      *
      * @return ShipmentInformation
      */
     private function parse($xml)
     {
         try {
-            $trackResponseXml = new \SimpleXMLElement(utf8_encode($xml));
-        } catch (\Exception $e) {
+            $trackResponseXml = new SimpleXMLElement(utf8_encode($xml));
+        } catch (Exception $e) {
             throw TrackingProviderException::createFromSimpleXMLException($e);
         }
 
@@ -149,9 +166,9 @@ XML;
                 $location = sprintf('%s, %s', $city, $state);
             }
 
-            $date = \DateTime::createFromFormat(
+            $date = DateTime::createFromFormat(
                 'YmdHis',
-                (string) $activityXml->Date . (string) $activityXml->Time
+                $activityXml->Date . $activityXml->Time
             );
 
             $shipmentEventType = null;
@@ -172,7 +189,7 @@ XML;
 
         $estimatedDeliveryDate = null;
         if (isset($trackResponseXml->Shipment->ScheduledDeliveryDate)) {
-            $estimatedDeliveryDate = new \DateTime((string) $trackResponseXml->Shipment->ScheduledDeliveryDate);
+            $estimatedDeliveryDate = new DateTime((string) $trackResponseXml->Shipment->ScheduledDeliveryDate);
         }
 
         return new ShipmentInformation(
