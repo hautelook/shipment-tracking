@@ -2,12 +2,16 @@
 
 namespace Hautelook\ShipmentTracking\Provider;
 
+use DateTime;
+use Exception;
 use Guzzle\Http\Client;
 use Guzzle\Http\ClientInterface;
 use Guzzle\Http\Exception\HttpException;
 use Hautelook\ShipmentTracking\Exception\TrackingProviderException;
 use Hautelook\ShipmentTracking\ShipmentEvent;
 use Hautelook\ShipmentTracking\ShipmentInformation;
+use RuntimeException;
+use SimpleXMLElement;
 
 /**
  * @author Adrien Brault <adrien.brault@gmail.com>
@@ -48,6 +52,8 @@ class UspsProvider implements ProviderInterface
             ))->send();
         } catch (HttpException $e) {
             throw TrackingProviderException::createFromHttpException($e);
+        } catch (Exception $e) {
+            throw new TrackingProviderException($e->getMessage(), $e->getCode(), $e);
         }
 
         return $this->parseTrackResponse($response->getBody(true), $trackingNumber);
@@ -64,7 +70,7 @@ class UspsProvider implements ProviderInterface
 </TrackFieldRequest>
 XML;
 
-        $xml = new \SimpleXMLElement('<TrackFieldRequest/>');
+        $xml = new SimpleXMLElement('<TrackFieldRequest/>');
         $xml->Revision = 1;
         $xml->ClientIp = '127.0.0.1';
         $xml->SourceId = '1';
@@ -74,18 +80,26 @@ XML;
         return $xml->asXML();
     }
 
+    /**
+     * @param string $xml
+     * @param string $trackingNumber
+     *
+     * @throws Exception|RuntimeException|TrackingProviderException
+     *
+     * @return ShipmentInformation
+     */
     private function parseTrackResponse($xml, $trackingNumber)
     {
         try {
-            $trackResponseXml = new \SimpleXMLElement($xml);
-        } catch (\Exception $e) {
+            $trackResponseXml = new SimpleXMLElement($xml);
+        } catch (Exception $e) {
             throw TrackingProviderException::createFromSimpleXMLException($e);
         }
 
         $trackInfoElements = $trackResponseXml->xpath(sprintf('//TrackInfo[@ID=\'%s\']', $trackingNumber));
 
         if (count($trackInfoElements) < 1) {
-            throw new Exception('Tracking information not found in the response.');
+            throw new RuntimeException('Tracking information not found in the response.');
         }
 
         $trackInfoXml = reset($trackInfoElements);
@@ -102,7 +116,7 @@ XML;
                 $location = sprintf('%s, %s', $city, $state);
             }
 
-            $date = new \DateTime((string) $trackDetailXml->EventDate . ' ' . (string) $trackDetailXml->EventTime);
+            $date = new DateTime($trackDetailXml->EventDate . ' ' . $trackDetailXml->EventTime);
 
             $shipmentEventType = null;
 
@@ -119,7 +133,7 @@ XML;
 
         $estimatedDeliveryDate = null;
         if (isset($trackInfoXml->ExpectedDeliveryDate)) {
-            $estimatedDeliveryDate = new \DateTime((string) $trackInfoXml->ExpectedDeliveryDate);
+            $estimatedDeliveryDate = new DateTime((string) $trackInfoXml->ExpectedDeliveryDate);
         }
 
         return new ShipmentInformation($events, $estimatedDeliveryDate);
