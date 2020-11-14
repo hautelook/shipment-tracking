@@ -50,13 +50,13 @@ class UspsProvider implements ProviderInterface
                 'API' => 'TrackV2',
                 'XML' => $this->createTrackRequestXml($trackingNumber),
             ))->send();
+
+            return $this->parseTrackResponse($response->getBody(true), $trackingNumber);
         } catch (HttpException $e) {
             throw TrackingProviderException::createFromHttpException($e);
         } catch (Exception $e) {
             throw new TrackingProviderException($e->getMessage(), $e->getCode(), $e);
         }
-
-        return $this->parseTrackResponse($response->getBody(true), $trackingNumber);
     }
 
     private function createTrackRequestXml($trackingNumber)
